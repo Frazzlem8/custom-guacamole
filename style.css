@@ -1,0 +1,260 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 10px;
+}
+
+.container {
+    max-width: 1920px;
+    max-height: 1080px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+header p {
+    font-size: 1.1em;
+    opacity: 0.9;
+}
+
+.connection-panel {
+    padding: 30px;
+    border-bottom: 2px solid #f0f0f0;
+    text-align: center;
+}
+
+.connection-panel h2 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.connection-panel .config-info {
+    color: #666;
+    font-size: 0.95em;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 5px;
+    color: #888;
+    font-size: 0.85em;
+}
+
+button {
+    padding: 15px 40px;
+    margin: 0 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+#connect-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+#connect-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+#disconnect-btn {
+    background: #e74c3c;
+    color: white;
+}
+
+#disconnect-btn:hover:not(:disabled) {
+    background: #c0392b;
+    transform: translateY(-2px);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.status-panel {
+    padding: 20px 30px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.status-panel h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+#status {
+    padding: 15px;
+    border-radius: 5px;
+    font-weight: 600;
+    background: #fff;
+    border: 2px solid #e0e0e0;
+}
+
+#status.success {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+#status.error {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.display-container {
+    min-height: 650px;
+    height: 650px;
+    background: #1a1a1a;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    position: relative;
+    overflow: auto;
+    padding: 0;
+}
+
+.display-container:empty::after {
+    content: 'Display will appear here when connected';
+    color: #666;
+    font-size: 1.2em;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Style for the Guacamole display */
+.display-container > div {
+    margin: 0;
+    display: block;
+    width: 100%;
+}
+
+/* Center the canvas element */
+.display-container canvas {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+}
+
+.info-panel {
+    padding: 30px;
+    background: #f8f9fa;
+}
+
+.info-panel h3 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.info-panel p {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.info-panel ul {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.info-panel li {
+    color: #555;
+    line-height: 1.8;
+}
+
+.info-panel code {
+    background: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    color: #e83e8c;
+}
+
+.info-panel strong {
+    color: #333;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    header h1 {
+        font-size: 1.8em;
+    }
+
+    .connection-panel,
+    .status-panel,
+    .info-panel {
+        padding: 20px;
+    }
+
+    button {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+        margin-right: 0;
+    }
+}

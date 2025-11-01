@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  guacd:
+    image: guacamole/guacd
+    container_name: guacd
+    restart: unless-stopped
+    ports:
+      - "4822:4822"
+    networks:
+      guacamole_network:
+        ipv4_address: 172.20.0.10
+    healthcheck:
+      test: ["CMD-SHELL", "netstat -ln | grep 4822 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  kali-ssh:
+    build: ./kali-ssh
+    image: kali-ssh
+    container_name: kali-ssh
+    restart: unless-stopped
+    ports:
+      - "22:22"  # SSH on host port 2222
+    networks:
+      guacamole_network:
+        ipv4_address: 172.20.0.20
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    healthcheck:
+      test: ["CMD-SHELL", "service ssh status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  guacamole_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

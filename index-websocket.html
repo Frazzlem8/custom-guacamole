@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct guacd WebSocket Connection</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Direct guacd WebSocket Connection</h1>
+            <p>Connect directly to guacd without Guacamole authentication</p>
+        </header>
+
+        <div class="connection-panel">
+            <h2>Remote Desktop Connection</h2>
+            <p class="config-info">Connection configured via backend</p>
+            
+            <button id="connect-btn" onclick="connect()">Connect</button>
+            <button id="disconnect-btn" onclick="disconnect()" disabled>Disconnect</button>
+        </div>
+
+        <div class="status-panel">
+            <h3>Connection Status</h3>
+            <div id="status">Not connected</div>
+        </div>
+
+        <div class="display-container" id="display-container">
+            <!-- Guacamole display will be inserted here -->
+        </div>
+
+        <div class="info-panel">
+            <h3>About This Connection</h3>
+            <p>This interface connects to a pre-configured remote system. Connection details are managed by the backend server.</p>
+            <p>Click <strong>Connect</strong> to establish the connection.</p>
+        </div>
+    </div>
+
+    <!-- Include Guacamole Common JS library - local file -->
+    <script src="lib/guacamole-common.js"></script>
+    
+    <!-- Use WebSocket-based client -->
+    <script src="app-websocket.js"></script>
+</body>
+</html>
