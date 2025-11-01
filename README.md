@@ -2,6 +2,9 @@
 
 A demonstration of connecting **directly to guacd** using WebSocket, bypassing Apache Guacamole's web application authentication layer.
 
+<img width="1800" height="1048" alt="image" src="https://github.com/user-attachments/assets/563b357b-f0ac-490b-8a68-42d4ea6b185f" />
+
+
 ## Overview
 
 This project implements a browser-based client that connects directly to Apache Guacamole's daemon (guacd) through a WebSocket bridge, allowing remote desktop access (SSH, RDP, VNC) without the traditional Guacamole web authentication.
