@@ -1,0 +1,7 @@
+{
+  "name": "guac-gateway",
+  "version": "1.0.0",
+  "dependencies": {
+    "guacamole-lite": "^1.2.0"
+  }
+}

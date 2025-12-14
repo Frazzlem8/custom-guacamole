@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Dashboard - Co-located Architecture</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #00d9ff; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 30px; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+        .stat-label {
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .gateways {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .gateway-card {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid #333;
+        }
+        .gateway-card.healthy { border-color: #00ff88; }
+        .gateway-card.unhealthy { border-color: #ff4444; }
+        
+        .gateway-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .gateway-name { font-size: 1.3em; color: #00d9ff; font-weight: bold; }
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status-badge.healthy { background: #00ff88; color: #000; }
+        .status-badge.unhealthy { background: #ff4444; color: #fff; }
+        
+        .gateway-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .info-item {
+            background: #0f0f23;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .info-label { font-size: 0.75em; color: #666; text-transform: uppercase; }
+        .info-value { font-size: 1.1em; margin-top: 3px; }
+        .info-value.highlight { color: #00ff88; }
+        
+        .sessions-list {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .session-item {
+            background: #0f0f23;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 0.85em;
+            font-family: monospace;
+        }
+        .no-sessions { color: #666; font-style: italic; text-align: center; padding: 20px; }
+        
+        .refresh-info { text-align: center; color: #666; margin-top: 20px; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Session Dashboard</h1>
+        <p class="subtitle">Co-located guacamole-lite + guacd Architecture</p>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="total-sessions">0</div>
+                <div class="stat-label">Total Sessions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="healthy-gateways">0</div>
+                <div class="stat-label">Healthy Gateways</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-gateways">0</div>
+                <div class="stat-label">Total Gateways</div>
+            </div>
+        </div>
+
+        <div class="gateways" id="gateways"></div>
+        
+        <p class="refresh-info">Auto-refreshes every 3 seconds</p>
+    </div>
+
+    <script>
+        async function refresh() {
+            try {
+                const [sessionsRes, healthRes] = await Promise.all([
+                    fetch('/api/sessions'),
+                    fetch('/api/health')
+                ]);
+                
+                const sessions = await sessionsRes.json();
+                const health = await healthRes.json();
+                
+                document.getElementById('total-sessions').textContent = sessions.totalSessions;
+                document.getElementById('healthy-gateways').textContent = health.healthyGateways;
+                document.getElementById('total-gateways').textContent = health.totalGateways;
+                
+                const gatewaysDiv = document.getElementById('gateways');
+                gatewaysDiv.innerHTML = sessions.gateways.map(gw => {
+                    const isHealthy = gw.status === 'healthy';
+                    const sessionCount = gw.data?.totalSessions || 0;
+                    const sessionList = gw.data?.sessions || {};
+                    
+                    return `
+                        <div class="gateway-card ${isHealthy ? 'healthy' : 'unhealthy'}">
+                            <div class="gateway-header">
+                                <span class="gateway-name">${gw.gateway}</span>
+                                <span class="status-badge ${isHealthy ? 'healthy' : 'unhealthy'}">
+                                    ${isHealthy ? '● Healthy' : '● Down'}
+                                </span>
+                            </div>
+                            ${gw.error ? `<p style="color: #ff4444;">Error: ${gw.error}</p>` : `
+                                <div class="gateway-info">
+                                    <div class="info-item">
+                                        <div class="info-label">Sessions</div>
+                                        <div class="info-value">${sessionCount}</div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-label">guacd</div>
+                                        <div class="info-value highlight">localhost:4822</div>
+                                    </div>
+                                </div>
+                                <div class="sessions-list">
+                                    ${Object.keys(sessionList).length === 0 
+                                        ? '<div class="no-sessions">No active sessions</div>'
+                                        : Object.entries(sessionList).map(([id, data]) => `
+                                            <div class="session-item">${id.substring(0, 20)}...</div>
+                                        `).join('')
+                                    }
+                                </div>
+                            `}
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Failed to refresh:', error);
+            }
+        }
+        
+        refresh();
+        setInterval(refresh, 3000);
+    </script>
+</body>
+</html>

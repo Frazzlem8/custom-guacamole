@@ -1,0 +1,33 @@
+# Minimal Guacamole-Lite Demo
+# 3 containers: gateway (guacd + guacamole-lite), nginx, test desktop
+
+services:
+  # =============================================================
+  # GATEWAY: guacd + guacamole-lite in one container
+  # This is what you'd deploy in production (behind a load balancer)
+  # =============================================================
+  gateway:
+    build: ./gateway
+    platform: linux/amd64
+    ports:
+      - "8085:8080"  # WebSocket endpoint for guacamole-lite
+      - "8086:8081"  # Token API (demo only - in production this is in your backend)
+
+  # =============================================================
+  # WEB CLIENT: Simple HTML page with guacamole-common-js
+  # In your app, this would be part of your existing frontend
+  # =============================================================
+  web:
+    build: ./web
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+
+  # =============================================================
+  # TEST DESKTOP: Linux desktop to connect to (for demo only)
+  # In production, this would be your actual RDP/VNC targets
+  # =============================================================
+  desktop:
+    build: ../guac-demo-2/desktop-linux
+    shm_size: "1gb"

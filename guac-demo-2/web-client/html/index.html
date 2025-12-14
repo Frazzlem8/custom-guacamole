@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Guacamole-Lite Demo 2 - Co-located Architecture</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Connection Screen -->
+        <div id="connection-screen">
+            <div id="connection-form">
+                <h2 class="form-header">🚀 Guacamole Gateway Demo</h2>
+                <p class="arch-note">Co-located guacamole-lite + guacd architecture</p>
+
+                <div class="form-row">
+                    <label>Protocol:</label>
+                    <div id="protocol" class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="protocol-rdp" name="protocol" value="rdp" checked>
+                            <label for="protocol-rdp">RDP</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="protocol-vnc" name="protocol" value="vnc">
+                            <label for="protocol-vnc">VNC</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label>Target:</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="target-test" name="target" value="test" checked>
+                            <label for="target-test">Test Desktop</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="target-custom" name="target" value="custom">
+                            <label for="target-custom">Custom Host</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="custom-host-fields" style="display: none;">
+                    <div class="form-row">
+                        <label for="hostname">Hostname:</label>
+                        <input type="text" id="hostname" placeholder="192.168.1.100">
+                    </div>
+                    <div class="form-row">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username">
+                    </div>
+                    <div class="form-row">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <button id="connect-button">Connect</button>
+                </div>
+
+                <div class="info-box">
+                    <p><strong>Architecture:</strong> Each gateway runs guacamole-lite + guacd together.</p>
+                    <p><strong>Load Balancer:</strong> Routes to any healthy gateway (sticky sessions).</p>
+                    <p><a href="http://localhost:9093" target="_blank">View Gateway Health Dashboard</a></p>
+                    <p><a href="http://localhost:9092" target="_blank">View Session Dashboard</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Display Screen -->
+        <div id="display-screen" style="display: none;">
+            <div id="display-header">
+                <div id="display-title">Remote Connection</div>
+                <div id="display-info">
+                    <span id="display-gateway"></span>
+                </div>
+                <button id="disconnect-button">Disconnect</button>
+            </div>
+            <div id="display"></div>
+        </div>
+    </div>
+
+    <script src="js/all.min.js"></script>
+    <script src="js/token-generator.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

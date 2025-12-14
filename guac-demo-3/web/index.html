@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Guacamole Client</title>
+    <style>
+        html, body { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: #333;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #container {
+            width: 800px;
+            height: 600px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        #display { 
+            width: 100%; 
+            height: 100%; 
+        }
+        #display canvas { 
+            cursor: none; 
+        }
+        #disconnect-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            z-index: 100;
+            padding: 4px 10px;
+            font-size: 12px;
+            opacity: 0.7;
+            border: none;
+            background: #666;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #disconnect-btn:hover {
+            opacity: 1;
+            background: #888;
+        }
+        #status {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="display"></div>
+        <button id="disconnect-btn" onclick="disconnect()">✕</button>
+        <div id="status">Connecting...</div>
+    </div>
+
+    <!-- Guacamole client library - extracted from Apache WAR -->
+    <script src="js/all.min.js"></script>
+    
+    <script>
+    /**
+     * MINIMAL GUACAMOLE CLIENT
+     * Auto-connects on page load with hardcoded credentials.
+     * In production, get these from your auth system.
+     */
+
+    let client = null;
+    
+    // Connection settings (hardcoded for demo)
+    const CONFIG = {
+        hostname: 'desktop',
+        username: 'testuser',
+        password: 'Passw0rd!'
+    };
+
+    // STEP 1: Get token from backend API
+    async function getToken() {
+        const response = await fetch('http://localhost:8086/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'rdp',
+                hostname: CONFIG.hostname,
+                port: 3389,
+                username: CONFIG.username,
+                password: CONFIG.password
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to get token');
+        }
+        
+        const data = await response.json();
+        return data.token;
+    }
+
+    // STEP 2: Connect using the Guacamole client
+    async function connect() {
+        const displayEl = document.getElementById('display');
+        const statusEl = document.getElementById('status');
+        
+        displayEl.innerHTML = '';
+        statusEl.textContent = 'Getting token...';
+
+        try {
+            const token = await getToken();
+            statusEl.textContent = 'Connecting...';
+            
+            // Create WebSocket tunnel to gateway
+            const tunnel = new Guacamole.WebSocketTunnel('ws://localhost:8085/');
+            
+            tunnel.onerror = (status) => {
+                console.error('Tunnel error:', status);
+                statusEl.textContent = 'Tunnel error: ' + (status.message || status.code);
+            };
+
+            client = new Guacamole.Client(tunnel);
+
+            client.onerror = (error) => {
+                console.error('Client error:', error);
+                statusEl.textContent = 'Error: ' + (error.message || 'Unknown');
+            };
+
+            client.onstatechange = (state) => {
+                const states = ['Idle', 'Connecting', 'Waiting', 'Connected', 'Disconnecting', 'Disconnected'];
+                statusEl.textContent = 'State: ' + (states[state] || state);
+                console.log('State changed to:', states[state] || state);
+            };
+
+            // Add the display canvas
+            const element = client.getDisplay().getElement();
+            element.style.cursor = 'none';  // Hide local cursor
+            displayEl.appendChild(element);
+
+            // Handle display resize - scale to fit container (800x600)
+            const container = document.getElementById('container');
+            const resizeDisplay = () => {
+                const display = client.getDisplay();
+                if (display.getWidth() > 0 && display.getHeight() > 0) {
+                    const scale = Math.min(
+                        container.clientWidth / display.getWidth(),
+                        container.clientHeight / display.getHeight()
+                    );
+                    display.scale(scale);
+                }
+            };
+            
+            client.getDisplay().onresize = resizeDisplay;
+            window.addEventListener('resize', resizeDisplay);
+
+            // Setup mouse input
+            const mouse = new Guacamole.Mouse(element);
+            mouse.onEach(['mousedown', 'mouseup', 'mousemove'], 
+                e => client.sendMouseState(e.state));
+
+            // Setup keyboard input
+            const keyboard = new Guacamole.Keyboard(document);
+            keyboard.onkeydown = keysym => client.sendKeyEvent(1, keysym);
+            keyboard.onkeyup = keysym => client.sendKeyEvent(0, keysym);
+
+            // Connect with the token
+            client.connect('token=' + encodeURIComponent(token));
+            
+            console.log('Connection initiated');
+        } catch (err) {
+            console.error('Connection failed:', err);
+            statusEl.textContent = 'Failed: ' + err.message;
+        }
+    }
+
+    // STEP 3: Disconnect (reloads page to reconnect)
+    function disconnect() {
+        if (client) {
+            client.disconnect();
+            client = null;
+        }
+        location.reload();
+    }
+    
+    // Auto-connect on page load
+    window.onload = connect;
+    </script>
+</body>
+</html>

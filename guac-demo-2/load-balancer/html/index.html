@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway Load Balancer - Health Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #00d9ff;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .architecture-box {
+            background: #16213e;
+            border: 1px solid #00d9ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            font-family: monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .gateways {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .gateway-card {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid #333;
+            transition: border-color 0.3s;
+        }
+        .gateway-card.healthy {
+            border-color: #00ff88;
+        }
+        .gateway-card.unhealthy {
+            border-color: #ff4444;
+        }
+        .gateway-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .gateway-name {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .status-badge.healthy {
+            background: #00ff88;
+            color: #000;
+        }
+        .status-badge.unhealthy {
+            background: #ff4444;
+            color: #fff;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .info-item {
+            background: #0f0f23;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .info-label {
+            font-size: 0.8em;
+            color: #888;
+            text-transform: uppercase;
+        }
+        .info-value {
+            font-size: 1.1em;
+            color: #fff;
+            margin-top: 4px;
+        }
+        .info-value.highlight {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        .benefits {
+            margin-top: 15px;
+            padding: 10px;
+            background: #0f3d0f;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .benefits-title {
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .benefits ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .refresh-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.85em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Gateway Load Balancer</h1>
+        <p class="subtitle">Co-located guacamole-lite + guacd Architecture</p>
+        
+        <div class="architecture-box">
+<pre>
+┌──────────────┐      ┌─────────────────────────────────────────────────────────┐
+│              │      │              Session Gateway Unit                       │
+│   Browser    │      │  ┌─────────────────┐    ┌─────────────────┐            │
+│              │──────│─▶│ guacamole-lite  │───▶│     guacd       │────▶ RDP   │
+│  (WebSocket) │      │  │   (Node.js)     │    │  (localhost)    │────▶ VNC   │
+│              │      │  │    :8080        │    │     :4822       │────▶ SSH   │
+└──────────────┘      │  └─────────────────┘    └─────────────────┘            │
+       │              │         Same Container / Same Pod / Same ENI            │
+       │              └─────────────────────────────────────────────────────────┘
+       │                                        ▲
+       │              ┌─────────────────────────┼───────────────────────────────┐
+       │              │                         │                               │
+       ▼              │  ┌──────────────────────┴────────────────────────────┐ │
+  ┌─────────┐         │  │                                                    │ │
+  │   ALB   │─────────│─▶│  gateway-1  │  gateway-2  │  gateway-3  │  ...    │ │
+  │(Layer 7)│         │  │                                                    │ │
+  └─────────┘         │  └────────────────────────────────────────────────────┘ │
+                      │                    Scale as a unit!                     │
+                      └─────────────────────────────────────────────────────────┘
+
+✅ No NLB between guacamole-lite and guacd
+✅ No network hop (localhost communication)
+✅ No capacity mismatch (they scale together)
+✅ Simpler architecture, lower cost
+</pre>
+        </div>
+
+        <div class="gateways" id="gateways">
+            <div class="gateway-card">
+                <div class="gateway-header">
+                    <span class="gateway-name">Loading...</span>
+                </div>
+            </div>
+        </div>
+        
+        <p class="refresh-info">Auto-refreshes every 3 seconds</p>
+    </div>
+
+    <script>
+        const gateways = ['gateway-1', 'gateway-2', 'gateway-3'];
+        
+        async function fetchGatewayInfo(gateway) {
+            try {
+                const [healthRes, infoRes] = await Promise.all([
+                    fetch(`/api/${gateway}/health`),
+                    fetch(`/api/${gateway}/info`)
+                ]);
+                
+                if (!healthRes.ok || !infoRes.ok) throw new Error('Failed to fetch');
+                
+                const health = await healthRes.json();
+                const info = await infoRes.json();
+                
+                return { gateway, health, info, error: null };
+            } catch (error) {
+                return { gateway, health: null, info: null, error: error.message };
+            }
+        }
+        
+        function renderGateway(data) {
+            const { gateway, health, info, error } = data;
+            const isHealthy = !error && health?.status === 'healthy';
+            
+            return `
+                <div class="gateway-card ${isHealthy ? 'healthy' : 'unhealthy'}">
+                    <div class="gateway-header">
+                        <span class="gateway-name">${gateway}</span>
+                        <span class="status-badge ${isHealthy ? 'healthy' : 'unhealthy'}">
+                            ${isHealthy ? '● Healthy' : '● Unhealthy'}
+                        </span>
+                    </div>
+                    ${error ? `<p style="color: #ff4444;">Error: ${error}</p>` : `
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">guacd Connection</div>
+                                <div class="info-value highlight">${health?.guacdConnection || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Active Sessions</div>
+                                <div class="info-value">${health?.activeSessions || 0}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Architecture</div>
+                                <div class="info-value">${info?.architecture || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">WebSocket Port</div>
+                                <div class="info-value">${info?.websocketPort || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="benefits">
+                            <div class="benefits-title">✓ Benefits</div>
+                            <ul>
+                                ${(info?.benefits || []).map(b => `<li>${b}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+        
+        async function refresh() {
+            const results = await Promise.all(gateways.map(fetchGatewayInfo));
+            document.getElementById('gateways').innerHTML = results.map(renderGateway).join('');
+        }
+        
+        refresh();
+        setInterval(refresh, 3000);
+    </script>
+</body>
+</html>

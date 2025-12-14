@@ -1,0 +1,118 @@
+services:
+  # =============================================================================
+  # SESSION GATEWAY UNITS (guacamole-lite + guacd co-located)
+  # 
+  # Each "gateway" container runs BOTH guacamole-lite AND guacd together.
+  # They communicate over localhost (127.0.0.1:4822) - no network hop!
+  # 
+  # Scale these as a unit based on active sessions / CPU / network.
+  # =============================================================================
+  
+  gateway-1:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: gateway-1
+    environment:
+      GATEWAY_ID: gateway-1
+      ENCRYPTION_KEY: MySuperSecretKeyForParamsToken12
+    expose:
+      - "8080"   # WebSocket (guacamole-lite)
+      - "3001"   # Health/API endpoint
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # gateway-2:
+  #   build:
+  #     context: .
+  #     dockerfile: gateway/Dockerfile
+  #   container_name: gateway-2
+  #   environment:
+  #     GATEWAY_ID: gateway-2
+  #     ENCRYPTION_KEY: MySuperSecretKeyForParamsToken12
+  #   expose:
+  #     - "8080"
+  #     - "3001"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+
+  # gateway-3:
+  #   build:
+  #     context: .
+  #     dockerfile: gateway/Dockerfile
+  #   container_name: gateway-3
+  #   environment:
+  #     GATEWAY_ID: gateway-3
+  #     ENCRYPTION_KEY: MySuperSecretKeyForParamsToken12
+  #   expose:
+  #     - "8080"
+  #     - "3001"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+
+  # =============================================================================
+  # LOAD BALANCER (simulated with nginx)
+  # 
+  # In production: ALB with sticky sessions
+  # Here: nginx with ip_hash for sticky sessions
+  # =============================================================================
+  
+  load-balancer:
+    build: ./load-balancer
+    container_name: load-balancer
+    depends_on:
+      - gateway-1
+      # - gateway-2
+      # - gateway-3
+    ports:
+      - "9091:80"      # WebSocket endpoint
+      - "9093:8080"    # Health dashboard
+
+  # =============================================================================
+  # TEST DESKTOP (target for RDP/VNC connections)
+  # =============================================================================
+  
+  desktop-linux:
+    build: ./desktop-linux
+    container_name: desktop-linux
+    shm_size: 1g
+    expose:
+      - "3389"  # RDP
+      - "5900"  # VNC
+
+  # =============================================================================
+  # WEB CLIENT
+  # =============================================================================
+  
+  web-client:
+    build: ./web-client
+    container_name: web-client
+    depends_on:
+      - load-balancer
+    ports:
+      - "9090:80"
+
+  # =============================================================================
+  # ADMIN DASHBOARD
+  # =============================================================================
+  
+  admin-dashboard:
+    build: ./admin-dashboard
+    container_name: admin-dashboard
+    depends_on:
+      - gateway-1
+      # - gateway-2
+      # - gateway-3
+    environment:
+      GATEWAYS: "gateway-1:3001,gateway-2:3001,gateway-3:3001"
+    ports:
+      - "9092:3000"
